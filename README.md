@@ -137,3 +137,50 @@ website/
 
 - 补齐首页缺失的多语言 key，修复 `markets_title`、`global_title`、`scenario_*`、`strength_*` 等 key 直接显示的问题。
 - 完成首页新增模块的中文、英文、越南语、泰语文案同步。
+
+## 客户需求后台
+
+项目内置一个轻量 Node.js 后台，用于接收官网联系表单并查看客户提交信息。
+
+### 启动方式
+
+```bash
+ADMIN_PASSWORD='your-secure-password' npm start
+```
+
+默认访问地址：
+
+```text
+http://localhost:3000
+```
+
+后台地址：
+
+```text
+http://localhost:3000/admin
+```
+
+### 功能说明
+
+- 前台联系表单提交到 `POST /api/inquiries`
+- 客户信息保存到本地 `data/inquiries.json`
+- 管理后台通过 `ADMIN_PASSWORD` 登录
+- 后台可查看提交时间、姓名、邮箱、电话、公司、需求描述和页面语言
+
+### 部署注意
+
+如果只部署 `website/` 到 GitHub Pages、对象存储或普通静态空间，提交功能不会生效，因为静态空间不能运行后台 API。
+
+要使用客户需求后台，需要部署整个项目并运行 Node 服务，例如：
+
+- 云服务器 + Nginx 反向代理到 Node 服务
+- Render / Railway / Fly.io 等 Node 托管平台
+- 自有服务器用 `pm2` 常驻运行 `npm start`
+
+生产环境务必设置：
+
+```bash
+ADMIN_PASSWORD='强密码'
+SESSION_SECRET='随机长字符串'
+PORT=3000
+```

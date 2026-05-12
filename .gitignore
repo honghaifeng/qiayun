@@ -20,3 +20,6 @@ __pycache__/
 # Raw source assets already copied into website/images
 恰云资质（2026.5拍）/
 微信图片_*.jpg
+
+# Runtime inquiry storage
+data/*.json

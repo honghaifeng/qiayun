@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>恰云电力客户需求后台</title>
+  <style>
+    :root { --primary:#1e3a5f; --accent:#f0ad2c; --muted:#64748b; --line:#e2e8f0; --bg:#f6f8fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:#172033; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 28px; background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; }
+    h1 { margin:0; color:var(--primary); font-size:24px; }
+    main { width:min(1180px, calc(100% - 32px)); margin:28px auto; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 12px 35px rgba(15,23,42,.06); padding:24px; }
+    .login-card { width:min(420px, 100%); margin:12vh auto; }
+    label { display:block; color:var(--muted); font-weight:700; margin-bottom:8px; }
+    input { width:100%; border:1px solid var(--line); border-radius:12px; padding:13px 14px; font-size:16px; outline:none; }
+    input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(30,58,95,.12); }
+    button { border:0; border-radius:12px; padding:12px 18px; background:var(--primary); color:#fff; font-weight:800; cursor:pointer; }
+    button.secondary { background:#eef2f7; color:var(--primary); }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+    .count { color:var(--muted); font-weight:700; }
+    .message { margin-top:12px; color:#b42318; min-height:22px; }
+    table { width:100%; border-collapse:collapse; background:#fff; overflow:hidden; border-radius:14px; }
+    th, td { padding:14px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:#475569; font-size:13px; background:#f8fafc; white-space:nowrap; }
+    td { font-size:14px; }
+    .empty { text-align:center; color:var(--muted); padding:48px 12px; }
+    .message-cell { max-width:360px; white-space:pre-wrap; line-height:1.5; }
+    .nowrap { white-space:nowrap; }
+    .hidden { display:none; }
+    @media (max-width: 780px) {
+      header { align-items:flex-start; flex-direction:column; }
+      table, thead, tbody, tr, th, td { display:block; }
+      thead { display:none; }
+      tr { border:1px solid var(--line); border-radius:14px; margin-bottom:12px; padding:8px; }
+      td { border:0; padding:8px; }
+      td::before { content:attr(data-label); display:block; color:var(--muted); font-size:12px; font-weight:800; margin-bottom:4px; }
+      .message-cell { max-width:none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>恰云电力客户需求后台</h1>
+    <button id="logoutBtn" class="secondary hidden">退出登录</button>
+  </header>
+  <main>
+    <section id="loginView" class="card login-card">
+      <h2>管理员登录</h2>
+      <p style="color:var(--muted);">请输入后台密码查看客户提交信息。</p>
+      <form id="loginForm">
+        <label for="password">后台密码</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+        <button style="width:100%;margin-top:16px;">登录</button>
+        <div id="loginMessage" class="message"></div>
+      </form>
+    </section>
+
+    <section id="adminView" class="card hidden">
+      <div class="toolbar">
+        <div>
+          <h2 style="margin:0 0 6px;">客户提交信息</h2>
+          <div id="count" class="count">加载中...</div>
+        </div>
+        <button id="refreshBtn">刷新</button>
+      </div>
+      <div style="overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>提交时间</th>
+              <th>姓名</th>
+              <th>邮箱</th>
+              <th>电话</th>
+              <th>公司</th>
+              <th>需求描述</th>
+              <th>语言</th>
+            </tr>
+          </thead>
+          <tbody id="inquiryRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const loginView = document.getElementById('loginView');
+    const adminView = document.getElementById('adminView');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const rowsEl = document.getElementById('inquiryRows');
+    const countEl = document.getElementById('count');
+    const loginMessage = document.getElementById('loginMessage');
+
+    function showLogin(message = '') {
+      loginView.classList.remove('hidden');
+      adminView.classList.add('hidden');
+      logoutBtn.classList.add('hidden');
+      loginMessage.textContent = message;
+    }
+
+    function showAdmin() {
+      loginView.classList.add('hidden');
+      adminView.classList.remove('hidden');
+      logoutBtn.classList.remove('hidden');
+    }
+
+    function formatDate(value) {
+      if (!value) return '-';
+      return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(value));
+    }
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
+    }
+
+    async function loadInquiries() {
+      const response = await fetch('/api/admin/inquiries', { cache: 'no-store' });
+      if (response.status === 401) return showLogin();
+      const data = await response.json();
+      showAdmin();
+      const inquiries = data.inquiries || [];
+      countEl.textContent = `共 ${inquiries.length} 条记录`;
+      if (!inquiries.length) {
+        rowsEl.innerHTML = '<tr><td class="empty" colspan="7">暂无客户提交信息</td></tr>';
+        return;
+      }
+      rowsEl.innerHTML = inquiries.map(item => `
+        <tr>
+          <td class="nowrap" data-label="提交时间">${escapeHtml(formatDate(item.createdAt))}</td>
+          <td data-label="姓名">${escapeHtml(item.name)}</td>
+          <td data-label="邮箱"><a href="mailto:${escapeHtml(item.email)}">${escapeHtml(item.email)}</a></td>
+          <td data-label="电话">${escapeHtml(item.phone || '-')}</td>
+          <td data-label="公司">${escapeHtml(item.company || '-')}</td>
+          <td class="message-cell" data-label="需求描述">${escapeHtml(item.message || '-')}</td>
+          <td data-label="语言">${escapeHtml(item.lang || '-')}</td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      loginMessage.textContent = '';
+      const password = document.getElementById('password').value;
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      if (!response.ok) return showLogin('密码不正确');
+      document.getElementById('password').value = '';
+      await loadInquiries();
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', loadInquiries);
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/admin/logout', { method: 'POST' });
+      showLogin();
+    });
+
+    loadInquiries().catch(() => showLogin('后台暂时不可用'));
+  </script>
+</body>
+</html>

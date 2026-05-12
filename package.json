@@ -1,0 +1,14 @@
+{
+  "name": "qiayun-website",
+  "version": "1.0.0",
+  "description": "QiaYun Power multilingual website with a lightweight inquiry admin backend.",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "check:i18n": "node scripts/check-i18n.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}
