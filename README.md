@@ -2,6 +2,29 @@
 
 恰云电力（QiaYun Power）企业官网静态站点，面向海外客户展示公司能力、产品中心、服务项目、客户与场景、资质证书和联系方式。
 
+
+## 仓库信息
+
+GitHub 仓库：
+
+```text
+https://github.com/honghaifeng/qiayun
+```
+
+当前项目既可以作为纯静态官网使用，也可以通过内置 Node 服务启用客户需求提交和管理后台。
+
+## 快速启动
+
+```bash
+npm start
+```
+
+生产环境建议显式设置后台密码和会话密钥：
+
+```bash
+ADMIN_PASSWORD='your-secure-password' SESSION_SECRET='random-long-secret' npm start
+```
+
 ## 项目内容
 
 - 多语言官网首页：中文、英文、越南语、泰语
